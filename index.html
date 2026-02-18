@@ -4,6 +4,12 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       <title>Sensor Faces – Face Blur Studio</title>
+      <meta name="description" content="Sensor Faces – เบลอใบหน้าอัตโนมัติในรูปและวิดีโอ ทำงานบนเครื่องของคุณ ปลอดภัย ใช้งานง่าย รองรับ Gaussian Blur, Pixelate, Solid Mask และเลือกส่วนของใบหน้าที่ต้องการเบลอได้">
+      <meta name="keywords" content="Sensor Faces, เบลอใบหน้า, เบลอหน้า, เบลอรูป, เบลอวิดีโอ, ปิดบังใบหน้า, ความเป็นส่วนตัว, face blur, pixelate faces, blur image, blur video, face detection, on-device processing, privacy, Gaussian Blur, Pixelate, Solid Mask">
+      <meta name="robots" content="index,follow">
+      <meta property="og:title" content="Sensor Faces – Face Blur Studio">
+      <meta property="og:description" content="เบลอใบหน้าอัตโนมัติสำหรับรูปภาพและวิดีโอ ทำงานบนเครื่องของคุณ ปลอดภัยและใช้งานง่าย">
+      <meta property="og:type" content="website">
       <link rel="stylesheet" href="css/styles.css">
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -74,10 +80,10 @@
                               <h3 class="controls-heading" data-i18n="controls.blur.region">ส่วนของใบหน้าที่ต้องการเบลอ</h3>
                               <div class="select-row">
                                  <select id="blurRegion">
-          <option value="full" selected data-i18n="blur.region.full">ทั้งใบหน้า</option>
-          <option value="eyes" data-i18n="blur.region.eyes">เฉพาะดวงตา</option>
-          <option value="mouth" data-i18n="blur.region.mouth">เฉพาะปาก</option>
-          <option value="eyes-mouth" data-i18n="blur.region.eyes_mouth">ดวงตาและปาก</option>
+                                    <option value="full" selected data-i18n="blur.region.full">ทั้งใบหน้า</option>
+                                    <option value="eyes" data-i18n="blur.region.eyes">เฉพาะดวงตา</option>
+                                    <option value="mouth" data-i18n="blur.region.mouth">เฉพาะปาก</option>
+                                    <option value="eyes-mouth" data-i18n="blur.region.eyes_mouth">ดวงตาและปาก</option>
                                  </select>
                               </div>
                            </div>
@@ -87,8 +93,8 @@
                               <h3 class="controls-heading" data-i18n="controls.blur.shape">รูปทรงของการเบลอ</h3>
                               <div class="select-row">
                                  <select id="blurShape">
-          <option value="rect" selected data-i18n="blur.shape.rect">สี่เหลี่ยม</option>
-          <option value="ellipse" data-i18n="blur.shape.ellipse">วงกลม / วงรี</option>
+                                    <option value="rect" selected data-i18n="blur.shape.rect">สี่เหลี่ยม</option>
+                                    <option value="ellipse" data-i18n="blur.shape.ellipse">วงกลม / วงรี</option>
                                  </select>
                               </div>
                            </div>
@@ -103,9 +109,9 @@
                               <h3 class="controls-heading" data-i18n="controls.export.quality">คุณภาพไฟล์ส่งออก</h3>
                               <div class="select-row">
                                  <select id="exportQuality">
-          <option value="high" data-i18n="export.quality.high">สูง (เหมาะสำหรับงานจริง)</option>
-          <option value="medium" selected data-i18n="export.quality.medium">ปานกลาง (สมดุลระหว่างขนาดไฟล์และคุณภาพ)</option>
-          <option value="low" data-i18n="export.quality.low">ต่ำ (ขนาดไฟล์เล็กสุด)</option>
+                                    <option value="high" data-i18n="export.quality.high">สูง (เหมาะสำหรับงานจริง)</option>
+                                    <option value="medium" selected data-i18n="export.quality.medium">ปานกลาง (สมดุลระหว่างขนาดไฟล์และคุณภาพ)</option>
+                                    <option value="low" data-i18n="export.quality.low">ต่ำ (ขนาดไฟล์เล็กสุด)</option>
                                  </select>
                               </div>
                            </div>
@@ -167,6 +173,7 @@
          </main>
          <footer class="app-footer">
             <span>Sensor Faces – Timmy</span>
+            <a href="https://github.com/Zentrary" target="_blank" rel="noopener">GitHub: Zentrary</a>
          </footer>
       </div>
       <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
