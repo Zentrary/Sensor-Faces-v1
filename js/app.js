@@ -532,6 +532,18 @@ function fitIntoBox(width, height, maxWidth, maxHeight) {
     };
 }
 
+function previewMaxSize() {
+    const surface = document.querySelector(".preview-surface.active") || document.querySelector(".preview-surfaces");
+    const pad = 24;
+    const vw = Math.max(320, Math.min(window.innerWidth, 1200));
+    const vh = Math.max(240, Math.min(window.innerHeight, 1000));
+    const cw = surface && surface.clientWidth ? surface.clientWidth : vw;
+    const ch = surface && surface.clientHeight ? surface.clientHeight : Math.round(vh * 0.65);
+    const maxWidth = Math.max(320, Math.min(900, cw - pad));
+    const maxHeight = Math.max(220, Math.min(600, ch - pad));
+    return { maxWidth, maxHeight };
+}
+
 function loadImagePreview(file) {
     const reader = new FileReader();
     reader.onload = () => {
@@ -549,9 +561,8 @@ function loadImagePreview(file) {
             if (videoProcessed) {
                 videoProcessed.hidden = true;
             }
-            const maxWidth = 900;
-            const maxHeight = 600;
-            const size = fitIntoBox(img.width, img.height, maxWidth, maxHeight);
+            const pm = previewMaxSize();
+            const size = fitIntoBox(img.width, img.height, pm.maxWidth, pm.maxHeight);
             imageOriginalCanvas.width = size.width;
             imageOriginalCanvas.height = size.height;
             imageProcessedCanvas.width = size.width;
@@ -1250,8 +1261,9 @@ async function processVideo() {
     videoProcessing = true;
     progressLabel.textContent = t("status.video.preparing.canvas");
     progressFill.style.width = "22%";
-    const maxWidth = 960;
-    const maxHeight = 540;
+    const pmVideo = previewMaxSize();
+    const maxWidth = pmVideo.maxWidth;
+    const maxHeight = pmVideo.maxHeight;
     const fitted = fitIntoBox(
         videoOriginal.videoWidth,
         videoOriginal.videoHeight,
