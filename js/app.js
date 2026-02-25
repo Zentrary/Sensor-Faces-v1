@@ -1,6 +1,6 @@
 const fileInput = document.getElementById("fileInput");
 const dropZone = document.getElementById("dropZone");
-const fileInfo = document.getElementById("fileInfo");
+const panelDescription = document.querySelector(".panel-description");
 const originalPreview = document.getElementById("originalPreview");
 const processedPreview = document.getElementById("processedPreview");
 const originalPlaceholder = document.getElementById("originalPlaceholder");
@@ -18,8 +18,8 @@ const progressLabel = document.getElementById("progressLabel");
 const blurModeGroup = document.getElementById("blurModeGroup");
 const blurIntensityInput = document.getElementById("blurIntensity");
 const blurIntensityValue = document.getElementById("blurIntensityValue");
-const blurSizeInput = document.getElementById("blurSize");
-const blurSizeValue = document.getElementById("blurSizeValue");
+const blurSizeInput = document.getElementById("blurAreaSize");
+const blurSizeValue = document.getElementById("blurAreaSizeValue");
 const blurRegionSelect = document.getElementById("blurRegion");
 const blurShapeSelect = document.getElementById("blurShape");
 const enableCustomRegionsInput = document.getElementById("enableCustomRegions");
@@ -27,14 +27,27 @@ const exportQualitySelect = document.getElementById("exportQuality");
 const faceSelectionContainer = document.getElementById("faceSelection");
 const themeToggle = document.getElementById("themeToggle");
 const resetButton = document.getElementById("resetButton");
+const removeButton = document.getElementById("removeButton");
 const processedVideoControls = document.getElementById("processedVideoControls");
 const processedVideoProgress = document.getElementById("processedVideoProgress");
 const langToggle = document.getElementById("langToggle");
+const maskFileInput = document.getElementById("maskFileInput");
+const maskUploadButton = document.getElementById("maskUploadButton");
+const maskPreview = document.getElementById("maskPreview");
+const maskPreviewImg = document.getElementById("maskPreviewImg");
+const maskFileName = document.getElementById("maskFileName");
+const maskImageControl = document.getElementById("maskImageControl");
+const fileListWrapper = document.getElementById("fileListWrapper");
+const fileListContainer = document.getElementById("fileList");
+const fileListEmpty = document.getElementById("fileListEmpty");
+const processAllButton = document.getElementById("processAllButton");
 
 const previewWrapper = document.querySelector(".preview-wrapper");
 const previewTabs = document.querySelectorAll(".preview-tab");
 
-let currentFile = null;
+let currentFiles = [];
+let activeFileIndex = -1;
+let fileStates = []; // Array of objects { file, mediaType, detections, processedBlob, processedFileName, ... }
 let currentMediaType = null;
 let faceDetector = null;
 let detectorReady = false;
@@ -50,11 +63,13 @@ let processedFileName = null;
 let videoProcessing = false;
 let lastVideoFaceBoxes = [];
 let lastVideoDetectionTime = 0;
+let videoDetectionInProgress = false;
 let currentImageExtension = "png";
 let currentVideoExtension = "webm";
 let customRegions = [];
 let drawingCustomRegion = false;
 let customRegionStart = null;
+let maskImage = null;
 
 function logDebug(tag, payload) {
     try {
@@ -70,9 +85,10 @@ function logError(tag, error, extra) {
 
 const translations = {
     th: {
+        "faces.initial": "ระบบจะสร้างรายการใบหน้าหลังจากประมวลผลรูปภาพ",
         "app.subtitle": "เบลอใบหน้าอัตโนมัติสำหรับรูปภาพและวิดีโอ",
         "panel.upload.title": "อัปโหลดไฟล์และตั้งค่า",
-        "panel.upload.description": "รองรับ JPG, PNG, WEBP, MP4, MOV, WEBM • ประมวลผลบนเครื่องคุณเท่านั้น",
+        "panel.upload.description": "รูปยังไม่ได้ทำการอัพโหลด",
         "drop.main": "ลากแล้ววางไฟล์ที่นี่",
         "drop.secondary": "หรือ เลือกไฟล์จากเครื่อง",
         "drop.hint": "ระบบจะตรวจจับใบหน้าและเบลอให้คุณโดยอัตโนมัติ",
@@ -84,12 +100,16 @@ const translations = {
         "preview.original.placeholder": "ยังไม่มีไฟล์ที่เลือก",
         "preview.processed.placeholder": "ผลลัพธ์จะปรากฏที่นี่หลังประมวลผล",
         "controls.blur.mode": "โหมดเบลอ",
+        "blur.mode.image": "Image Mask",
+        "controls.mask.image": "รูปภาพที่ใช้เป็น Mask",
+        "controls.mask.upload": "เลือกรูปภาพ",
         "controls.blur.intensity": "ความแรงการเบลอ",
         "controls.blur.size": "ขนาดพื้นที่เบลอ",
         "controls.blur.region": "ส่วนของใบหน้าที่ต้องการเบลอ",
         "controls.blur.shape": "รูปทรงของการเบลอ",
         "controls.custom.area": "พื้นที่ที่กำหนดเอง",
         "controls.custom.area.hint": "ลากบนรูปหรือวิดีโอเพื่อเพิ่มพื้นที่เบลอเอง",
+        "controls.custom.regions": "วาดพื้นที่เบลอเองบนภาพหรือวิดีโอ",
         "controls.export.quality": "คุณภาพไฟล์ส่งออก",
         "controls.faces.title": "เลือกใบหน้าที่ต้องการเบลอ",
         "controls.actions.detect": "ตรวจจับใบหน้าและเบลอ",
@@ -128,12 +148,20 @@ const translations = {
         "export.quality.low": "ต่ำ (ขนาดไฟล์เล็กสุด)",
         "faces.none": "ไม่พบใบหน้าในรูปภาพ",
         "faces.found": "พบใบหน้า {count} ใบหน้า",
-        "file.unsupported": "รองรับเฉพาะไฟล์รูปภาพและวิดีโอตามที่กำหนด"
+        "controls.faces.select": "เลือกใบหน้าที่จะเบลอ",
+        "panel.filelist.title": "รายการไฟล์ที่อัปโหลด",
+        "file.unsupported": "รองรับเฉพาะไฟล์รูปภาพและวิดีโอตามที่กำหนด",
+        "filelist.empty": "ยังไม่มีไฟล์ที่อัปโหลด",
+        "controls.actions.processAll": "เบลอทุกรูป",
+        "controls.actions.remove": "เอารูปออก",
+        "status.loading.model": "กำลังโหลดโมเดลตรวจจับใบหน้า…",
+        "status.loading.error": "เกิดข้อผิดพลาดในการโหลดโมเดล"
     },
     en: {
+        "faces.initial": "Faces will be listed here after processing",
         "app.subtitle": "Automatic face blurring for photos and videos",
         "panel.upload.title": "Upload file and settings",
-        "panel.upload.description": "Supports JPG, PNG, WEBP, MP4, MOV, WEBM • Processed locally in your browser",
+        "panel.upload.description": "",
         "drop.main": "Drag and drop files here",
         "drop.secondary": "or Browse from device",
         "drop.hint": "The system will detect faces and blur them automatically",
@@ -145,17 +173,23 @@ const translations = {
         "preview.original.placeholder": "No file selected yet",
         "preview.processed.placeholder": "The result will appear here after processing",
         "controls.blur.mode": "Blur mode",
+        "blur.mode.image": "Image Mask",
+        "controls.mask.image": "Mask Image",
+        "controls.mask.upload": "Choose Image",
         "controls.blur.intensity": "Blur intensity",
         "controls.blur.size": "Blur area size",
         "controls.blur.region": "Face area to blur",
         "controls.blur.shape": "Blur shape",
         "controls.custom.area": "Custom areas",
         "controls.custom.area.hint": "Drag on the image or video to add blur regions",
+        "controls.custom.regions": "Draw custom blur areas on image or video",
         "controls.export.quality": "Export quality",
         "controls.faces.title": "Select faces to blur",
         "controls.actions.detect": "Detect faces and blur",
         "controls.actions.reset": "Reset",
         "controls.actions.download": "Download blurred file",
+        "controls.actions.processAll": "Blur all images",
+        "controls.actions.remove": "Remove selected file",
         "privacy.note": "Everything is processed inside your browser. Your files are never uploaded to a server.",
         "status.ready": "Ready to process",
         "status.ready.image": "Ready to detect faces in image",
@@ -189,7 +223,13 @@ const translations = {
         "export.quality.low": "Low (smallest file size)",
         "faces.none": "No faces found in the image",
         "faces.found": "Found {count} faces",
-        "file.unsupported": "Only supported image and video formats are allowed"
+        "controls.faces.select": "Select faces to blur",
+        "panel.filelist.title": "Uploaded files",
+        "file.unsupported": "Only supported image and video formats are allowed",
+        "filelist.empty": "No files uploaded",
+        "controls.actions.processAll": "Blur all",
+        "status.loading.model": "Loading face detection model…",
+        "status.loading.error": "Failed to load model"
     }
 };
 
@@ -258,16 +298,16 @@ function setLanguage(lang) {
     }
     if (faceSelectionContainer) {
         if (!imageDetections.length) {
-            faceSelectionContainer.innerHTML =
-                `<p class="face-selection-empty" data-i18n="faces.none">${t(
-					"faces.none"
-				)}</p>`;
+            // เช็กว่ามีการอัปโหลดและประมวลผลเสร็จแล้วแต่ไม่เจอใบหน้า หรือว่ายังไม่ได้ทำอะไรเลย
+            const isDone = activeFileIndex !== -1 && fileStates[activeFileIndex].status === 'done';
+            const key = isDone ? "faces.none" : "faces.initial";
+            faceSelectionContainer.innerHTML = `<p class="face-selection-empty" data-i18n="${key}">${t(key)}</p>`;
         } else {
             updateFaceSelectionUI();
         }
     }
-    if (currentFile) {
-        setFileInfo(currentFile);
+    if (activeFileIndex !== -1) {
+        setFileInfo(fileStates[activeFileIndex].file);
     }
     if (langToggle) {
         const buttons = langToggle.querySelectorAll(".lang-option");
@@ -305,7 +345,9 @@ previewTabs.forEach((tab) => {
 });
 
 function resetState() {
-    currentFile = null;
+    currentFiles = [];
+    activeFileIndex = -1;
+    fileStates = [];
     currentMediaType = null;
     imageDetections = [];
     selectedFaceIndices = [];
@@ -316,7 +358,30 @@ function resetState() {
     customRegions = [];
     drawingCustomRegion = false;
     customRegionStart = null;
-    progressFill.style.width = "0%";
+    maskImage = null;
+    if (maskPreviewImg) {
+        maskPreviewImg.src = "";
+        maskPreviewImg.hidden = true;
+    }
+    if (maskFileInput) {
+        maskFileInput.value = "";
+    }
+    if (maskImageControl) {
+        maskImageControl.hidden = true;
+    }
+    if (fileListWrapper) {
+        // แสดงกรอบรายการไฟล์เสมอ พร้อมข้อความว่างเริ่มต้น
+        fileListWrapper.hidden = false;
+    }
+    if (fileListContainer) {
+        fileListContainer.innerHTML = `<p class="face-selection-empty" id="fileListEmpty" data-i18n="filelist.empty">${t("filelist.empty")}</p>`;
+    }
+    if (removeButton) {
+        removeButton.disabled = true;
+    }
+    if (processAllButton) {
+        processAllButton.disabled = true;
+    }
     progressLabel.textContent = t("status.ready");
     processButton.disabled = true;
     downloadButton.disabled = true;
@@ -335,9 +400,13 @@ function resetState() {
     }
     originalPlaceholder.hidden = false;
     processedPlaceholder.hidden = false;
-    fileInfo.textContent = "";
-    faceSelectionContainer.innerHTML =
-        '<p class="face-selection-empty" data-i18n="faces.none">ระบบจะสร้างรายการใบหน้าหลังจากประมวลผลรูปภาพ</p>';
+    if (panelDescription) {
+        panelDescription.textContent = t("panel.upload.description");
+    }
+    if (faceSelectionContainer) {
+        faceSelectionContainer.innerHTML =
+            `<p class="face-selection-empty" data-i18n="faces.initial">${t("faces.initial")}</p>`;
+    }
     if (enableCustomRegionsInput) {
         enableCustomRegionsInput.checked = false;
     }
@@ -348,24 +417,215 @@ function resetState() {
 
 resetState();
 
-function formatBytes(bytes) {
-    if (!bytes && bytes !== 0) return "";
-    const units = ["B", "KB", "MB", "GB"];
-    let index = 0;
-    let value = bytes;
-    while (value >= 1024 && index < units.length - 1) {
-        value /= 1024;
-        index += 1;
+function handleFileSelection(files) {
+    if (!files || files.length === 0) return;
+
+    const newFiles = Array.from(files);
+    newFiles.forEach(file => {
+        const isImage = file.type.startsWith("image/");
+        const isVideo = file.type.startsWith("video/");
+        if (!isImage && !isVideo) return;
+
+        // Check if file already exists in list (by name and size)
+        const exists = fileStates.some(s => s.file.name === file.name && s.file.size === file.size);
+        if (exists) return;
+
+        fileStates.push({
+            file: file,
+            mediaType: isImage ? "image" : "video",
+            detections: [],
+            selectedFaceIndices: [],
+            processedBlob: null,
+            processedFileName: null,
+            originalImageMeta: null,
+            customRegions: [],
+            status: 'pending' // pending, processing, done
+        });
+    });
+
+    if (fileStates.length > 0) {
+        if (previewWrapper) previewWrapper.classList.add("has-media");
+
+        // If no file is active, select the first newly added one
+        if (activeFileIndex === -1) {
+            selectFile(0);
+        } else {
+            renderFileList();
+        }
     }
-    return `${value.toFixed(1)} ${units[index]}`;
+}
+
+async function selectFile(index) {
+    if (index < 0 || index >= fileStates.length) return;
+
+    // Save current state of the previously active file
+    if (activeFileIndex !== -1 && activeFileIndex < fileStates.length) {
+        const current = fileStates[activeFileIndex];
+        current.detections = [...imageDetections];
+        current.selectedFaceIndices = [...selectedFaceIndices];
+        current.processedBlob = processedBlob;
+        current.processedFileName = processedFileName;
+        current.originalImageMeta = originalImageMeta;
+        current.customRegions = [...customRegions];
+    }
+
+    activeFileIndex = index;
+    const next = fileStates[index];
+
+    // Restore state
+    currentMediaType = next.mediaType;
+    imageDetections = [...next.detections];
+    selectedFaceIndices = [...next.selectedFaceIndices];
+    processedBlob = next.processedBlob;
+    processedFileName = next.processedFileName;
+    originalImageMeta = next.originalImageMeta;
+    customRegions = [...next.customRegions];
+
+    // Update UI
+    setFileInfo(next.file);
+    renderFileList();
+    updateFaceSelectionUI();
+    if (removeButton) {
+        removeButton.disabled = false;
+    }
+
+    if (next.mediaType === "image") {
+        await loadImagePreview(next.file);
+        if (next.status === 'done' && next.detections.length > 0) {
+            // Re-render blurred image if detections exist
+            renderBlurredImage();
+        }
+    } else {
+        await loadVideoPreview(next.file);
+        if (next.status === 'done' && next.processedBlob) {
+            const url = URL.createObjectURL(next.processedBlob);
+            videoProcessed.src = url;
+            videoProcessed.hidden = false;
+            if (processedVideoPlayer) processedVideoPlayer.hidden = false;
+            processedPlaceholder.hidden = true;
+            downloadButton.disabled = false;
+        } else {
+            videoProcessed.hidden = true;
+            if (processedVideoPlayer) processedVideoPlayer.hidden = true;
+            processedPlaceholder.hidden = false;
+            downloadButton.disabled = true;
+        }
+    }
+
+    // Update progress bar
+    progressFill.style.width = next.status === 'done' ? "100%" : "0%";
+    progressLabel.textContent = next.status === 'done' ? t("status.done") : t("status.ready");
+}
+
+function renderFileList() {
+    if (!fileListContainer) return;
+
+    if (fileStates.length === 0) {
+        fileListContainer.innerHTML = `<p class="face-selection-empty" id="fileListEmpty" data-i18n="filelist.empty">${t("filelist.empty")}</p>`;
+        if (processAllButton) {
+            processAllButton.hidden = true;
+            processAllButton.disabled = true;
+        }
+        return;
+    }
+
+    fileListContainer.innerHTML = "";
+    fileStates.forEach((state, index) => {
+        const item = document.createElement("div");
+        const statusClass = state.status === 'done' ? 'done' : (state.status === 'processing' ? 'processing' : 'pending');
+        item.className = `file-list-item ${index === activeFileIndex ? 'active' : ''} ${statusClass}`;
+
+        const main = document.createElement("div");
+        main.className = "file-list-item-main";
+        main.onclick = () => selectFile(index);
+
+        const indexBadge = document.createElement("span");
+        indexBadge.className = "file-list-item-index";
+        indexBadge.textContent = String(index + 1);
+
+        const name = document.createElement("span");
+        name.className = "file-list-item-name";
+        name.textContent = state.file.name;
+
+        main.appendChild(indexBadge);
+        main.appendChild(name);
+
+        const status = document.createElement("span");
+        status.className = "file-list-item-status";
+        status.textContent = state.status === 'done' ? "✓" : "✕";
+
+        const remove = document.createElement("span");
+        remove.className = "file-list-item-remove";
+        remove.textContent = "✕";
+        remove.onclick = (e) => {
+            e.stopPropagation();
+            removeFile(index);
+        };
+
+        item.appendChild(main);
+        item.appendChild(status);
+        fileListContainer.appendChild(item);
+    });
+
+    if (processAllButton) {
+        const hasPendingImages = fileStates.some(s => s.status === 'pending' && s.mediaType === 'image');
+        processAllButton.disabled = !hasPendingImages;
+        processAllButton.hidden = false;
+    }
+}
+
+async function processAllImages() {
+    const pendingImages = fileStates
+        .map((s, i) => ({
+            ...s,
+            index: i
+        }))
+        .filter(s => s.status === 'pending' && s.mediaType === 'image');
+
+    if (pendingImages.length === 0) return;
+
+    processButton.disabled = true;
+    processAllButton.disabled = true;
+
+    for (const item of pendingImages) {
+        await selectFile(item.index);
+        await processImage();
+    }
+
+    processButton.disabled = false;
+    processAllButton.disabled = false;
+}
+
+if (processAllButton) {
+    processAllButton.onclick = processAllImages;
+}
+
+if (removeButton) {
+    removeButton.addEventListener("click", () => {
+        if (activeFileIndex === -1 || fileStates.length === 0) return;
+        removeFile(activeFileIndex);
+    });
+}
+
+function removeFile(index) {
+    fileStates.splice(index, 1);
+
+    if (fileStates.length === 0) {
+        resetState();
+    } else {
+        if (activeFileIndex === index) {
+            const nextIndex = Math.min(index, fileStates.length - 1);
+            activeFileIndex = -1;
+            selectFile(nextIndex);
+        } else {
+            if (activeFileIndex > index) activeFileIndex--;
+            renderFileList();
+        }
+    }
 }
 
 function setFileInfo(file) {
-    const isImage = file.type.startsWith("image/");
-    const typeKey = isImage ? "file.type.image" : "file.type.video";
-    const typeLabel = t(typeKey);
-    const sizeLabel = formatBytes(file.size);
-    fileInfo.innerHTML = `<span>${typeLabel}: ${file.name}</span><span>${sizeLabel}</span>`;
+    // ไม่แสดงชื่อไฟล์ที่เลือกด้านบนอีกต่อไป
 }
 
 function activeBlurRegion() {
@@ -447,31 +707,8 @@ function activeBlurShape() {
     return blurShapeSelect.value || "rect";
 }
 
-function handleFileSelection(file) {
-    resetState();
-    if (!file) return;
-    const isImage = file.type.startsWith("image/");
-    const isVideo = file.type.startsWith("video/");
-    if (!isImage && !isVideo) {
-        fileInfo.textContent = t("file.unsupported");
-        return;
-    }
-    currentFile = file;
-    currentMediaType = isImage ? "image" : "video";
-    if (previewWrapper) {
-        previewWrapper.classList.add("has-media");
-    }
-    setFileInfo(file);
-    if (isImage) {
-        loadImagePreview(file);
-    } else {
-        loadVideoPreview(file);
-    }
-}
-
 fileInput.addEventListener("change", (event) => {
-    const file = event.target.files && event.target.files[0];
-    handleFileSelection(file || null);
+    handleFileSelection(event.target.files);
 });
 
 dropZone.addEventListener("dragover", (event) => {
@@ -486,10 +723,8 @@ dropZone.addEventListener("dragleave", () => {
 dropZone.addEventListener("drop", (event) => {
     event.preventDefault();
     dropZone.classList.remove("drag-over");
-    const file = event.dataTransfer.files && event.dataTransfer.files[0];
-    if (file) {
-        fileInput.files = event.dataTransfer.files;
-        handleFileSelection(file);
+    if (event.dataTransfer.files) {
+        handleFileSelection(event.dataTransfer.files);
     }
 });
 
@@ -541,69 +776,85 @@ function previewMaxSize() {
     const ch = surface && surface.clientHeight ? surface.clientHeight : Math.round(vh * 0.65);
     const maxWidth = Math.max(320, Math.min(900, cw - pad));
     const maxHeight = Math.max(220, Math.min(600, ch - pad));
-    return { maxWidth, maxHeight };
+    return {
+        maxWidth,
+        maxHeight
+    };
 }
 
 function loadImagePreview(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-            if (videoOriginal) {
-                videoOriginal.hidden = true;
-            }
-            if (processedVideoPlayer) {
-                processedVideoPlayer.hidden = true;
-            }
-            if (videoProcessedCanvas) {
-                videoProcessedCanvas.hidden = true;
-            }
-            if (videoProcessed) {
-                videoProcessed.hidden = true;
-            }
-            const pm = previewMaxSize();
-            const size = fitIntoBox(img.width, img.height, pm.maxWidth, pm.maxHeight);
-            imageOriginalCanvas.width = size.width;
-            imageOriginalCanvas.height = size.height;
-            imageProcessedCanvas.width = size.width;
-            imageProcessedCanvas.height = size.height;
-            const ctx = imageOriginalCanvas.getContext("2d");
-            ctx.clearRect(0, 0, size.width, size.height);
-            ctx.drawImage(img, 0, 0, size.width, size.height);
-            originalImageMeta = {
-                width: size.width,
-                height: size.height,
-                naturalWidth: img.width,
-                naturalHeight: img.height,
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                if (videoOriginal) {
+                    videoOriginal.hidden = true;
+                }
+                if (processedVideoPlayer) {
+                    processedVideoPlayer.hidden = true;
+                }
+                if (videoProcessedCanvas) {
+                    videoProcessedCanvas.hidden = true;
+                }
+                if (videoProcessed) {
+                    videoProcessed.hidden = true;
+                }
+                // เพิ่มความคมชัดโดยใช้ความละเอียดจริงของรูปภาพ (จำกัดที่ 4096px เพื่อความปลอดภัย)
+                const MAX_CANVAS_SIZE = 4096;
+                let targetWidth = img.width;
+                let targetHeight = img.height;
+                if (targetWidth > MAX_CANVAS_SIZE || targetHeight > MAX_CANVAS_SIZE) {
+                    const ratio = Math.min(MAX_CANVAS_SIZE / targetWidth, MAX_CANVAS_SIZE / targetHeight);
+                    targetWidth = Math.round(targetWidth * ratio);
+                    targetHeight = Math.round(targetHeight * ratio);
+                }
+                imageOriginalCanvas.width = targetWidth;
+                imageOriginalCanvas.height = targetHeight;
+                imageProcessedCanvas.width = targetWidth;
+                imageProcessedCanvas.height = targetHeight;
+                const ctx = imageOriginalCanvas.getContext("2d");
+                ctx.clearRect(0, 0, targetWidth, targetHeight);
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                originalImageMeta = {
+                    width: targetWidth,
+                    height: targetHeight,
+                    naturalWidth: img.width,
+                    naturalHeight: img.height,
+                };
+                imageOriginalCanvas.hidden = false;
+                originalPlaceholder.hidden = true;
+                processButton.disabled = false;
+                progressLabel.textContent = t("status.ready.image");
+                resolve();
             };
-            imageOriginalCanvas.hidden = false;
-            originalPlaceholder.hidden = true;
-            processButton.disabled = false;
-            progressLabel.textContent = t("status.ready.image");
+            img.src = reader.result;
         };
-        img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+    });
 }
 
 function loadVideoPreview(file) {
-    const url = URL.createObjectURL(file);
-    imageOriginalCanvas.hidden = true;
-    imageProcessedCanvas.hidden = true;
-    videoOriginal.src = url;
-    videoOriginal.hidden = false;
-    originalPlaceholder.hidden = true;
-    processButton.disabled = false;
-    progressLabel.textContent = t("status.ready.video.detect");
-    videoOriginal.addEventListener(
-        "loadedmetadata",
-        () => {
-            progressLabel.textContent = t("status.ready.video.process");
-            videoOriginal.currentTime = 0;
-        }, {
-            once: true
-        }
-    );
+    return new Promise((resolve) => {
+        const url = URL.createObjectURL(file);
+        imageOriginalCanvas.hidden = true;
+        imageProcessedCanvas.hidden = true;
+        videoOriginal.src = url;
+        videoOriginal.hidden = false;
+        originalPlaceholder.hidden = true;
+        processButton.disabled = false;
+        progressLabel.textContent = t("status.ready.video.detect");
+        videoOriginal.addEventListener(
+            "loadedmetadata",
+            () => {
+                progressLabel.textContent = t("status.ready.video.process");
+                videoOriginal.currentTime = 0;
+                resolve();
+            }, {
+                once: true
+            }
+        );
+    });
 }
 
 blurIntensityInput.addEventListener("input", () => {
@@ -629,10 +880,44 @@ blurModeGroup.addEventListener("click", (event) => {
     blurModeGroup.querySelectorAll(".segmented-option").forEach((b) => {
         b.classList.toggle("active", b === button);
     });
+
+    const mode = button.getAttribute("data-mode");
+    if (maskImageControl) {
+        maskImageControl.hidden = (mode !== "image");
+    }
+
     if (currentMediaType === "image" && imageDetections.length > 0) {
         renderBlurredImage();
     }
 });
+
+if (maskUploadButton && maskFileInput) {
+    maskUploadButton.addEventListener("click", () => {
+        maskFileInput.click();
+    });
+
+    maskFileInput.addEventListener("change", (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (file && file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    maskImage = img;
+                    if (maskPreviewImg) {
+                        maskPreviewImg.src = e.target.result;
+                        maskPreviewImg.hidden = false;
+                    }
+                    if (currentMediaType === "image" && imageDetections.length > 0) {
+                        renderBlurredImage();
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
 
 function activeBlurMode() {
     const active = blurModeGroup.querySelector(".segmented-option.active");
@@ -742,7 +1027,7 @@ async function detectFacesWithConfidence(canvas, confidence) {
     return results;
 }
 
-async function detectFacesAdaptive(canvas, desiredCount) {
+async function detectFacesAdaptive(canvas) {
     const tries = [0.55, 0.45, 0.35, 0.28, 0.2];
     let best = null;
     let bestCount = -1;
@@ -758,12 +1043,6 @@ async function detectFacesAdaptive(canvas, desiredCount) {
             best = results;
             bestCount = count;
         }
-        if (desiredCount && count >= desiredCount) {
-            return results;
-        }
-        if (!desiredCount && count > 0) {
-            return results;
-        }
     }
     return best || {
         detections: []
@@ -771,15 +1050,17 @@ async function detectFacesAdaptive(canvas, desiredCount) {
 }
 
 processButton.addEventListener("click", async () => {
-    if (!currentFile || !currentMediaType) return;
+    if (activeFileIndex === -1 || !currentMediaType) return;
+    fileStates[activeFileIndex].status = 'processing';
+    renderFileList();
     processButton.disabled = true;
     downloadButton.disabled = true;
     progressFill.style.width = "4%";
-    progressLabel.textContent = "กำลังโหลดโมเดลตรวจจับใบหน้า…";
+    progressLabel.textContent = t("status.loading.model");
     try {
         await ensureFaceDetector();
     } catch (error) {
-        progressLabel.textContent = "เกิดข้อผิดพลาดในการโหลดโมเดล";
+        progressLabel.textContent = t("status.loading.error");
         processButton.disabled = false;
         return;
     }
@@ -804,7 +1085,8 @@ async function processImage() {
     progressFill.style.width = "18%";
     let results;
     try {
-        results = await detectFacesAdaptive(imageOriginalCanvas, 2);
+        // พยายามหาใบหน้าทั้งหมดที่โมเดลตรวจเจอ (ไม่หยุดแค่ 2 หน้า)
+        results = await detectFacesAdaptive(imageOriginalCanvas);
     } catch (error) {
         logError("processImage:detectFacesOnCanvas", error);
         processButton.disabled = false;
@@ -849,6 +1131,14 @@ async function processImage() {
     progressLabel.textContent = t("status.done");
     processButton.disabled = false;
     downloadButton.disabled = false;
+
+    if (activeFileIndex !== -1) {
+        fileStates[activeFileIndex].status = 'done';
+        fileStates[activeFileIndex].detections = [...imageDetections];
+        fileStates[activeFileIndex].selectedFaceIndices = [...selectedFaceIndices];
+        renderFileList();
+    }
+
     if (processedVideoPlayer) {
         processedVideoPlayer.hidden = true;
     }
@@ -861,11 +1151,13 @@ async function processImage() {
 }
 
 function updateFaceSelectionUI() {
-    if (!imageDetections.length) {
-        faceSelectionContainer.innerHTML =
-            `<p class="face-selection-empty" data-i18n="faces.none">${t(
-			"faces.none"
-		)}</p>`;
+    if (!faceSelectionContainer || !imageDetections.length) {
+        if (faceSelectionContainer) {
+            faceSelectionContainer.innerHTML =
+                `<p class="face-selection-empty" data-i18n="faces.none">${t(
+                "faces.none"
+            )}</p>`;
+        }
         return;
     }
     const fragment = document.createDocumentFragment();
@@ -993,16 +1285,63 @@ function renderBlurredImage() {
                 intensity,
                 shape
             );
+        } else if (blurMode === "image" && maskImage) {
+            applyImageMaskRegions(
+                outCtx,
+                imageOriginalCanvas,
+                boxes,
+                intensity,
+                shape
+            );
         }
     }
     imageProcessedCanvas.hidden = false;
     processedPlaceholder.hidden = true;
     processedBlob = null;
-    processedFileName = buildOutputFileName(currentFile, "image");
-    currentImageExtension = "png";
-    imageProcessedCanvas.toBlob((blob) => {
-        processedBlob = blob;
-    }, "image/png");
+
+    if (activeFileIndex !== -1) {
+        const activeState = fileStates[activeFileIndex];
+        processedFileName = buildOutputFileName(activeState.file, "image");
+        currentImageExtension = "png";
+        imageProcessedCanvas.toBlob((blob) => {
+            processedBlob = blob;
+            activeState.processedBlob = blob;
+            activeState.processedFileName = processedFileName;
+        }, "image/png");
+    } else {
+        processedFileName = "blurred";
+        currentImageExtension = "png";
+        imageProcessedCanvas.toBlob((blob) => {
+            processedBlob = blob;
+        }, "image/png");
+    }
+}
+
+function applyImageMaskRegions(outCtx, sourceCanvas, boxes, intensity, shape) {
+    if (!maskImage) return;
+    boxes.forEach((box) => {
+        const x = Math.max(0, Math.floor(box.x));
+        const y = Math.max(0, Math.floor(box.y));
+        const width = Math.min(sourceCanvas.width - x, Math.floor(box.width));
+        const height = Math.min(sourceCanvas.height - y, Math.floor(box.height));
+        if (width <= 0 || height <= 0) return;
+
+        if (shape === "ellipse") {
+            outCtx.save();
+            outCtx.beginPath();
+            const cx = x + width / 2;
+            const cy = y + height / 2;
+            const rx = width / 2;
+            const ry = height / 2;
+            outCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            outCtx.closePath();
+            outCtx.clip();
+            outCtx.drawImage(maskImage, x, y, width, height);
+            outCtx.restore();
+        } else {
+            outCtx.drawImage(maskImage, x, y, width, height);
+        }
+    });
 }
 
 function applyGaussianBlurRegions(outCtx, sourceCanvas, boxes, intensity, shape) {
@@ -1162,11 +1501,13 @@ function buildRegionBoxes(faces, region) {
             width,
             height
         } = face;
+
+        // โฟกัสดวงตา: ขยายกรอบให้ครอบทั้งดวงตา-คิ้ว เพื่อครอบคลุมตอนหันหน้า/ก้มเงย
         if (region === "eyes" || region === "eyes-mouth") {
-            const eyeHeight = height * 0.2;
-            const eyeWidth = width * 0.55;
+            const eyeHeight = height * 0.32;
+            const eyeWidth = width * 0.7;
             const eyeX = x + (width - eyeWidth) / 2;
-            const eyeY = y + height * 0.23;
+            const eyeY = y + height * 0.18;
             result.push({
                 x: eyeX,
                 y: eyeY,
@@ -1174,11 +1515,13 @@ function buildRegionBoxes(faces, region) {
                 height: eyeHeight,
             });
         }
+
+        // โฟกัสปาก: ยืดกรอบกว้างขึ้นและสูงขึ้นเล็กน้อย เพื่อครอบทั้งบริเวณปากและคางส่วนบน
         if (region === "mouth" || region === "eyes-mouth") {
-            const mouthHeight = height * 0.22;
-            const mouthWidth = width * 0.5;
+            const mouthHeight = height * 0.28;
+            const mouthWidth = width * 0.6;
             const mouthX = x + (width - mouthWidth) / 2;
-            const mouthY = y + height * 0.6;
+            const mouthY = y + height * 0.58;
             result.push({
                 x: mouthX,
                 y: mouthY,
@@ -1186,9 +1529,11 @@ function buildRegionBoxes(faces, region) {
                 height: mouthHeight,
             });
         }
+
+        // โหมดทั้งหน้า: ลด margin ให้ครอบใบหน้ามากขึ้น (กันกรณีเอียงหน้า/หลุดเฟรมบางส่วน)
         if (region === "full" || (!region && region !== "")) {
-            const marginX = width * 0.08;
-            const marginY = height * 0.08;
+            const marginX = width * 0.05;
+            const marginY = height * 0.05;
             result.push({
                 x: x + marginX,
                 y: y + marginY,
@@ -1234,6 +1579,74 @@ function scaleBox(box, scale, maxWidth, maxHeight) {
     };
 }
 
+// ทำให้กรอบใบหน้าระหว่างเฟรมเคลื่อนที่นุ่มนวลขึ้น ลดการสั่นของการเบลอ
+function smoothBoxes(previousBoxes, newBoxes) {
+    if (!previousBoxes || !previousBoxes.length || !newBoxes.length) {
+        return newBoxes;
+    }
+
+    const SMOOTHING = 0.6; // ค่ามาก = ตามตำแหน่งเดิมมากขึ้น (นิ่งขึ้น)
+    const result = [];
+
+    newBoxes.forEach((box) => {
+        const cx = box.x + box.width / 2;
+        const cy = box.y + box.height / 2;
+
+        let bestIndex = -1;
+        let bestDistSq = Infinity;
+
+        previousBoxes.forEach((prev, index) => {
+            const pcx = prev.x + prev.width / 2;
+            const pcy = prev.y + prev.height / 2;
+            const dx = cx - pcx;
+            const dy = cy - pcy;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                bestIndex = index;
+            }
+        });
+
+        if (bestIndex === -1) {
+            result.push(box);
+            return;
+        }
+
+        const prev = previousBoxes[bestIndex];
+        const maxRefSize = Math.max(
+            prev.width,
+            prev.height,
+            box.width,
+            box.height
+        );
+        const maxAllowedDist = maxRefSize * 1.8;
+        const dist = Math.sqrt(bestDistSq);
+
+        // ถ้ากระโดดไกลเกินไป (เช่น เปลี่ยนคน หรือหายไปจากเฟรม) ไม่ต้อง smooth
+        if (!isFinite(dist) || dist > maxAllowedDist) {
+            result.push(box);
+            return;
+        }
+
+        const keep = SMOOTHING;
+        const move = 1 - keep;
+
+        const sx = prev.x * keep + box.x * move;
+        const sy = prev.y * keep + box.y * move;
+        const sw = prev.width * keep + box.width * move;
+        const sh = prev.height * keep + box.height * move;
+
+        result.push({
+            x: sx,
+            y: sy,
+            width: sw,
+            height: sh
+        });
+    });
+
+    return result;
+}
+
 function buildOutputFileName(file, kind) {
     const baseName = file.name.replace(/\.[^/.]+$/, "");
     const time = new Date();
@@ -1250,6 +1663,10 @@ time.getHours()
     return `${baseName}_${suffix}_${stamp}`;
 }
 
+// ควบคุมจังหวะการตรวจจับใบหน้าในวิดีโอ
+const VIDEO_DETECTION_INTERVAL_SEC = 0.1; // ตรวจจับใหม่ทุก ~0.1 วินาที (ประมาณ 10 ครั้งต่อวินาที)
+const VIDEO_DETECTION_FALLBACK_SEC = 0.9; // ใช้ตำแหน่งเดิมต่อได้สูงสุด ~0.9 วินาที ถ้าตรวจจับไม่เจอชั่วคราว
+
 async function processVideo() {
     lastVideoFaceBoxes = [];
     lastVideoDetectionTime = 0;
@@ -1261,49 +1678,36 @@ async function processVideo() {
     videoProcessing = true;
     progressLabel.textContent = t("status.video.preparing.canvas");
     progressFill.style.width = "22%";
-    const pmVideo = previewMaxSize();
-    const maxWidth = pmVideo.maxWidth;
-    const maxHeight = pmVideo.maxHeight;
-    const fitted = fitIntoBox(
-        videoOriginal.videoWidth,
-        videoOriginal.videoHeight,
-        maxWidth,
-        maxHeight
-    );
+
+    // ปรับปรุงความละเอียดวิดีโอ (จำกัดที่ 1280px เพื่อลดอาการกระตุกและโหลด CPU)
+    const MAX_VIDEO_SIZE = 1280;
+    let targetWidth = videoOriginal.videoWidth;
+    let targetHeight = videoOriginal.videoHeight;
+    if (targetWidth > MAX_VIDEO_SIZE || targetHeight > MAX_VIDEO_SIZE) {
+        const ratio = Math.min(MAX_VIDEO_SIZE / targetWidth, MAX_VIDEO_SIZE / targetHeight);
+        targetWidth = Math.round(targetWidth * ratio);
+        targetHeight = Math.round(targetHeight * ratio);
+    }
     const canvas = videoProcessedCanvas || document.createElement("canvas");
-    canvas.width = fitted.width;
-    canvas.height = fitted.height;
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
     const ctx = canvas.getContext("2d");
-    const stream = canvas.captureStream();
+    const canvasStream = canvas.captureStream(30);
     const qualitySetting = exportQualitySelect.value;
-    let mimeType = "";
+    let mimeType = qualitySetting === "high" ? "video/webm;codecs=vp9,opus" : "video/webm;codecs=vp8,opus";
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = "video/webm";
+    }
     let extension = "webm";
-    const mp4Candidates = [
-        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
-        "video/mp4"
-    ];
-    for (const candidate of mp4Candidates) {
-        if (MediaRecorder.isTypeSupported(candidate)) {
-            mimeType = candidate;
-            extension = "mp4";
-            break;
-        }
-    }
-    if (!mimeType) {
-        mimeType =
-            qualitySetting === "high" ?
-            "video/webm;codecs=vp9" :
-            "video/webm;codecs=vp8";
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = "video/webm";
-        }
-        extension = "webm";
-    }
     currentVideoExtension = extension;
     let recorder;
     try {
-        recorder = new MediaRecorder(stream, {
-            mimeType
+        // กำหนด Bitrate ให้สูงขึ้นเพื่อรักษาความชัด (ประมาณ 8 Mbps สำหรับคุณภาพสูง)
+        const videoBitsPerSecond = qualitySetting === "high" ? 12000000 : (qualitySetting === "low" ? 2500000 : 6000000);
+        // บันทึกเฉพาะวิดีโอจากแคนวาส (ตัดเสียงออกเพื่อลดบั๊กเรื่องเวลา/การเลื่อนคลิป)
+        recorder = new MediaRecorder(canvasStream, {
+            mimeType,
+            videoBitsPerSecond
         });
     } catch (error) {
         progressLabel.textContent = t("status.video.unsupported");
@@ -1327,15 +1731,20 @@ async function processVideo() {
     const blurMode = activeBlurMode();
     const region = activeBlurRegion();
     const shape = activeBlurShape();
+
+    // แคนวาสขนาดเล็กสำหรับใช้ตรวจจับใบหน้าเพื่อลดอาการกระตุก
+    const detectCanvas = document.createElement("canvas");
+    const detectCtx = detectCanvas.getContext("2d");
     videoOriginal.pause();
     videoOriginal.currentTime = 0;
-    videoOriginal.muted = true;
+    videoOriginal.muted = false;
+    videoOriginal.volume = 1;
     videoOriginal.playbackRate = 1;
     let lastTime = -1;
     let finished = false;
     recorder.start(200);
     videoOriginal.play().catch(() => {
-        progressLabel.textContent = "กรุณากดเล่นวิดีโอก่อนเริ่มประมวลผลอีกครั้ง";
+        progressLabel.textContent = t("status.video.play_required");
         videoProcessing = false;
         processButton.disabled = false;
         recorder.stop();
@@ -1357,6 +1766,83 @@ async function processVideo() {
     document.querySelectorAll(".preview-surface").forEach((surface) => {
         surface.classList.toggle("active", surface.id === "processedPreview");
     });
+    async function runVideoDetectionSnapshot(currentTime) {
+        if (videoDetectionInProgress) return;
+        videoDetectionInProgress = true;
+        try {
+            // ย่อขนาดภาพก่อนส่งให้โมเดลตรวจจับ ลดโหลด CPU
+            const maxDetectWidth = 640;
+            const maxDetectHeight = 360;
+            const scale = Math.min(
+                maxDetectWidth / canvas.width,
+                maxDetectHeight / canvas.height,
+                1
+            );
+            const dw = Math.max(1, Math.round(canvas.width * scale));
+            const dh = Math.max(1, Math.round(canvas.height * scale));
+            detectCanvas.width = dw;
+            detectCanvas.height = dh;
+            detectCtx.clearRect(0, 0, dw, dh);
+            detectCtx.drawImage(
+                canvas,
+                0, 0, canvas.width, canvas.height,
+                0, 0, dw, dh
+            );
+
+            let detections = [];
+            try {
+                // ปรับให้เหลือการตรวจจับครั้งเดียวด้วยค่ากลางๆ เพื่อลดภาระเครื่องและลดอาการกระตุก
+                let results = await detectFacesWithConfidence(detectCanvas, 0.4);
+                detections = results && results.detections ? results.detections : [];
+            } catch (e) {
+                detections = [];
+            }
+
+            if (!detections.length) {
+                return;
+            }
+
+            // แปลงตำแหน่งจาก detectCanvas กลับไปเป็นพิกเซลบน canvas หลัก
+            const sx = canvas.width / detectCanvas.width;
+            const sy = canvas.height / detectCanvas.height;
+
+            const faces = detections.map((d) => {
+                const box = d.boundingBox;
+                const x = (box.xCenter - box.width / 2) * detectCanvas.width * sx;
+                const y = (box.yCenter - box.height / 2) * detectCanvas.height * sy;
+                const w = box.width * detectCanvas.width * sx;
+                const h = box.height * detectCanvas.height * sy;
+                return {
+                    x,
+                    y,
+                    width: w,
+                    height: h,
+                };
+            });
+
+            const sizeScale = activeBlurSize();
+            let boxes = buildRegionBoxes(faces, region);
+
+            if (sizeScale && sizeScale !== 1) {
+                boxes = boxes.map((box) =>
+                    scaleBox(box, sizeScale, canvas.width, canvas.height)
+                );
+            }
+
+            // ทำให้ตำแหน่งกรอบเคลื่อนที่นุ่มนวลขึ้นเมื่อมีตำแหน่งเดิมอยู่แล้ว
+            if (lastVideoFaceBoxes && lastVideoFaceBoxes.length) {
+                boxes = smoothBoxes(lastVideoFaceBoxes, boxes);
+            }
+
+            lastVideoFaceBoxes = boxes.map(b => ({
+                ...b
+            }));
+            lastVideoDetectionTime = currentTime;
+        } finally {
+            videoDetectionInProgress = false;
+        }
+    }
+
     async function step() {
         if (!videoProcessing) return;
         const current = videoOriginal.currentTime;
@@ -1380,50 +1866,35 @@ async function processVideo() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(
                 videoOriginal,
-                0,
-                0,
-                videoOriginal.videoWidth,
-                videoOriginal.videoHeight,
-                0,
-                0,
-                canvas.width,
-                canvas.height
+                0, 0, videoOriginal.videoWidth, videoOriginal.videoHeight,
+                0, 0, canvas.width, canvas.height
             );
-            const results = await detectFacesAdaptive(canvas, 0);
-            const detections =
-                results && results.detections ? results.detections : [];
-            let faces = detections.map((d) => {
-                const box = d.boundingBox;
-                const x = box.xCenter - box.width / 2;
-                const y = box.yCenter - box.height / 2;
-                return {
-                    x: x * canvas.width,
-                    y: y * canvas.height,
-                    width: box.width * canvas.width,
-                    height: box.height * canvas.height,
-                };
-            });
-            let boxes = buildRegionBoxes(faces, region);
-            const sizeScale = activeBlurSize();
-            if (sizeScale && sizeScale !== 1) {
-                boxes = boxes.map((box) =>
-                    scaleBox(box, sizeScale, canvas.width, canvas.height)
-                );
+
+            // ตัดสินใจว่าต้อง "ขอให้ตรวจจับใหม่" หรือใช้ผลตรวจจากเฟรมก่อนหน้า
+            const shouldDetectNow = !lastVideoFaceBoxes.length ||
+                !isFinite(lastVideoDetectionTime) ||
+                (current - lastVideoDetectionTime) >= VIDEO_DETECTION_INTERVAL_SEC;
+
+            // ขอให้รันตรวจจับเฟรมนี้แบบ async (ไม่บล็อคเฟรมปัจจุบัน)
+            if (shouldDetectNow) {
+                runVideoDetectionSnapshot(current);
             }
-            if (lastVideoFaceBoxes.length && boxes.length === lastVideoFaceBoxes.length) {
-                const alpha = 0.35;
-                boxes = boxes.map((box, index) => {
-                    const prev = lastVideoFaceBoxes[index];
-                    if (!prev) return box;
-                    return {
-                        x: prev.x + (box.x - prev.x) * alpha,
-                        y: prev.y + (box.y - prev.y) * alpha,
-                        width: prev.width + (box.width - prev.width) * alpha,
-                        height: prev.height + (box.height - prev.height) * alpha,
-                    };
-                });
+
+            // เริ่มจากตำแหน่งใบหน้าล่าสุดที่ตรวจได้
+            let allBoxes = lastVideoFaceBoxes.map(b => ({
+                ...b
+            }));
+
+            // ถ้าผ่านไปนานเกินกำหนดโดยไม่ตรวจจับเจออีก ให้หยุดเบลอ (ถือว่าไม่มีใบหน้าในเฟรมแล้ว)
+            if (allBoxes.length) {
+                const gapSinceDetect = current - lastVideoDetectionTime;
+                if (!isFinite(gapSinceDetect) || gapSinceDetect > VIDEO_DETECTION_FALLBACK_SEC) {
+                    allBoxes = [];
+                }
             }
-            let manualBoxes = [];
+
+            // รวม custom regions (วาดเอง) เข้าไปด้วย
+            const manualBoxes = [];
             if (
                 enableCustomRegionsInput &&
                 enableCustomRegionsInput.checked &&
@@ -1436,51 +1907,64 @@ async function processVideo() {
                     const ph = box.height * canvas.height;
                     const x = Math.max(0, px);
                     const y = Math.max(0, py);
-                    const width = Math.min(canvas.width - x, pw);
-                    const height = Math.min(canvas.height - y, ph);
-                    if (width > 0 && height > 0) {
+                    const w = Math.min(canvas.width - x, pw);
+                    const h = Math.min(canvas.height - y, ph);
+                    if (w > 0 && h > 0) {
                         manualBoxes.push({
                             x,
                             y,
-                            width,
-                            height
+                            width: w,
+                            height: h
                         });
                     }
                 });
             }
-            let allBoxes = boxes.concat(manualBoxes);
-            if (!allBoxes.length && lastVideoFaceBoxes.length) {
-                const gap = current - lastVideoDetectionTime;
-                if (isFinite(gap) && gap <= 0.4) {
-                    allBoxes = lastVideoFaceBoxes.map((b) => ({
-                        x: b.x,
-                        y: b.y,
-                        width: b.width,
-                        height: b.height
-                    }));
-                }
-            }
+
+            allBoxes = allBoxes.concat(manualBoxes);
+
+            // ใช้โหมดเบลอตามที่เลือก (เหมือนกับรูปภาพ)
             if (allBoxes.length) {
                 const intensity = Number(blurIntensityInput.value);
                 if (blurMode === "gaussian") {
-                    applyGaussianBlurRegions(ctx, canvas, allBoxes, intensity, shape);
+                    applyGaussianBlurRegions(
+                        ctx,
+                        canvas,
+                        allBoxes,
+                        intensity,
+                        shape
+                    );
                 } else if (blurMode === "pixelate") {
-                    applyPixelateRegions(ctx, canvas, allBoxes, intensity, shape);
+                    applyPixelateRegions(
+                        ctx,
+                        canvas,
+                        allBoxes,
+                        intensity,
+                        shape
+                    );
                 } else if (blurMode === "solid") {
-                    applySolidMaskRegions(ctx, canvas, allBoxes, intensity, shape);
+                    applySolidMaskRegions(
+                        ctx,
+                        canvas,
+                        allBoxes,
+                        intensity,
+                        shape
+                    );
+                } else if (blurMode === "image" && maskImage) {
+                    applyImageMaskRegions(
+                        ctx,
+                        canvas,
+                        allBoxes,
+                        intensity,
+                        shape
+                    );
                 }
             }
-            if (boxes.length) {
-                lastVideoFaceBoxes = boxes.map((b) => ({
-                    ...b
-                }));
-                lastVideoDetectionTime = current;
-            }
+
             const progressRatio = current / totalDuration;
             const percent = Math.min(99, Math.round(progressRatio * 100));
             progressFill.style.width = `${percent}%`;
             progressLabel.textContent = t("status.video.processing.percent", {
-                percent: `${percent}%`
+                percent: percent
             });
         }
         if (!finished) {
@@ -1494,12 +1978,29 @@ async function processVideo() {
     }
     window.requestAnimationFrame(step);
     await recorderPromise;
+    // หยุดสตรีมจากแคนวาสเพื่อให้ไฟล์วิดีโอปิดอย่างสมบูรณ์
+    canvasStream.getTracks().forEach(track => {
+        try {
+            track.stop();
+        } catch (e) {}
+    });
     videoProcessing = false;
     const blob = new Blob(chunks, {
         type: mimeType
     });
     processedBlob = blob;
-    processedFileName = buildOutputFileName(currentFile, "video");
+
+    if (activeFileIndex !== -1) {
+        const activeState = fileStates[activeFileIndex];
+        processedFileName = buildOutputFileName(activeState.file, "video");
+        activeState.processedBlob = blob;
+        activeState.processedFileName = processedFileName;
+        activeState.status = 'done';
+        renderFileList();
+    } else {
+        processedFileName = "blurred-video";
+    }
+
     const url = URL.createObjectURL(blob);
     videoProcessed.src = url;
     videoProcessed.hidden = false;
@@ -1518,16 +2019,45 @@ async function processVideo() {
 }
 
 downloadButton.addEventListener("click", () => {
-    if (!processedBlob || !processedFileName) return;
-    const url = URL.createObjectURL(processedBlob);
-    const link = document.createElement("a");
-    const kind = currentMediaType === "video" ? currentVideoExtension : currentImageExtension;
-    link.href = url;
-    link.download = `${processedFileName}.${kind}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    if (!fileStates.length) return;
+    const doneItems = fileStates
+        .map((s, i) => ({
+            ...s,
+            index: i
+        }))
+        .filter(s => s.status === "done" && s.processedBlob);
+    if (doneItems.length === 0) {
+        const pendingNames = fileStates
+            .filter(s => s.status !== "done")
+            .map(s => s.file.name);
+        const message = pendingNames.length ?
+            `ไฟล์ต่อไปนี้ยังไม่ได้เบลอ:\n- ${pendingNames.join("\n- ")}` :
+            "ยังไม่มีไฟล์ที่พร้อมดาวน์โหลด";
+        window.alert(message);
+        return;
+    }
+    doneItems.forEach(item => {
+        const url = URL.createObjectURL(item.processedBlob);
+        const link = document.createElement("a");
+        const kind = item.mediaType === "video" ? currentVideoExtension : currentImageExtension;
+        const name = item.processedFileName || "blurred";
+        link.href = url;
+        link.download = `${name}.${kind}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    });
+    // ลบไฟล์ที่ดาวน์โหลดแล้วออกจากรายการ
+    fileStates = fileStates.filter(s => !(s.status === "done" && s.processedBlob));
+    if (fileStates.length === 0) {
+        resetState();
+    } else {
+        if (activeFileIndex >= fileStates.length) {
+            activeFileIndex = fileStates.length - 1;
+        }
+        renderFileList();
+    }
 });
 
 if (processedVideoControls && videoProcessed && processedVideoProgress) {
