@@ -1,182 +1,211 @@
 <!doctype html>
 <html lang="th">
-   <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      <title>Sensor Faces – Face Blur Studio</title>
-      <meta name="description" content="Sensor Faces – เบลอใบหน้าอัตโนมัติในรูปและวิดีโอ ทำงานบนเครื่องของคุณ ปลอดภัย ใช้งานง่าย รองรับ Gaussian Blur, Pixelate, Solid Mask และเลือกส่วนของใบหน้าที่ต้องการเบลอได้">
-      <meta name="keywords" content="Sensor Faces, เบลอใบหน้า, เบลอหน้า, เบลอรูป, เบลอวิดีโอ, ปิดบังใบหน้า, ความเป็นส่วนตัว, face blur, pixelate faces, blur image, blur video, face detection, on-device processing, privacy, Gaussian Blur, Pixelate, Solid Mask">
-      <meta name="robots" content="index,follow">
-      <meta property="og:title" content="Sensor Faces – Face Blur Studio">
-      <meta property="og:description" content="เบลอใบหน้าอัตโนมัติสำหรับรูปภาพและวิดีโอ ทำงานบนเครื่องของคุณ ปลอดภัยและใช้งานง่าย">
-      <meta property="og:type" content="website">
-      <link rel="stylesheet" href="css/styles.css">
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-   </head>
-   <body>
-      <div class="app-root">
-         <header class="app-header">
-            <div class="brand">
-               <div class="brand-text">
-                  <h1 class="brand-title">Sensor Faces</h1>
-                  <p class="brand-subtitle" data-i18n="app.subtitle">เบลอใบหน้าอัตโนมัติสำหรับรูปภาพและวิดีโอ</p>
-               </div>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Sensor Faces – Face Blur Studio</title>
+    <meta name="description" content="Sensor Faces – เบลอใบหน้าอัตโนมัติในรูปและวิดีโอ ทำงานบนเครื่องของคุณ ปลอดภัย ใช้งานง่าย รองรับ Gaussian Blur, Pixelate, Solid Mask และเลือกส่วนของใบหน้าที่ต้องการเบลอได้">
+    <meta name="keywords" content="Sensor Faces, เบลอใบหน้า, เบลอหน้า, เบลอรูป, เบลอวิดีโอ, ปิดบังใบหน้า, ความเป็นส่วนตัว, face blur, pixelate faces, blur image, blur video, face detection, on-device processing, privacy, Gaussian Blur, Pixelate, Solid Mask">
+    <meta name="robots" content="index,follow">
+    <meta property="og:title" content="Sensor Faces – Face Blur Studio">
+    <meta property="og:description" content="เบลอใบหน้าอัตโนมัติสำหรับรูปภาพและวิดีโอ ทำงานบนเครื่องของคุณ ปลอดภัยและใช้งานง่าย">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app-root">
+    <header class="app-header">
+        <div class="brand">
+            <div class="brand-text">
+                <h1 class="brand-title">Sensor Faces</h1>
+                <p class="brand-subtitle" data-i18n="app.subtitle">เบลอใบหน้าอัตโนมัติสำหรับรูปภาพและวิดีโอ</p>
             </div>
-            <div class="header-actions">
-               <div class="mode-toggle" id="themeToggle" aria-label="Toggle dark mode">
-                  <span class="mode-icon mode-icon-sun">☀</span>
-                  <span class="mode-icon mode-icon-moon">🌙</span>
-                  <div class="mode-knob"></div>
-               </div>
-               <div class="lang-toggle" id="langToggle" aria-label="Toggle language">
-                  <button type="button" class="lang-option active" data-lang="th">TH</button>
-                  <button type="button" class="lang-option" data-lang="en">EN</button>
-               </div>
+        </div>
+        <div class="header-actions">
+            <div class="mode-toggle" id="themeToggle" aria-label="Toggle dark mode">
+                <span class="mode-icon mode-icon-sun">☀</span>
+                <span class="mode-icon mode-icon-moon">🌙</span>
+                <div class="mode-knob"></div>
             </div>
-         </header>
-         <main class="app-main">
-            <section class="panel panel-left">
-               <h2 class="panel-title" data-i18n="panel.upload.title">อัปโหลดไฟล์และตั้งค่า</h2>
-               <p class="panel-description" data-i18n="panel.upload.description">รองรับ JPG, PNG, WEBP, MP4, MOV, WEBM • ประมวลผลบนเครื่องคุณเท่านั้น</p>
-               <div id="dropZone" class="drop-zone">
-                  <input id="fileInput" class="drop-input" type="file" accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.webm,image/*,video/*">
-                  <div class="drop-content">
-                     <div class="drop-text-main" data-i18n="drop.main">ลากแล้ววางไฟล์ที่นี่</div>
-                     <div class="drop-text-secondary" data-i18n="drop.secondary">หรือ <span class="drop-browse">เลือกไฟล์จากเครื่อง</span></div>
-                     <div class="drop-hint" data-i18n="drop.hint">ระบบจะตรวจจับใบหน้าและเบลอให้คุณโดยอัตโนมัติ</div>
-                  </div>
-               </div>
-               <div id="fileInfo" class="file-info"></div>
-               <div class="panel-subsection">
-                  <h2 class="panel-title panel-title-compact" data-i18n="panel.settings.title">ตั้งค่าและประมวลผล</h2>
-                  <div class="settings-section">
-                     <div class="settings-layout">
-                        <div class="settings-column">
-                           <div class="controls-group">
-                              <h3 class="controls-heading" data-i18n="controls.blur.mode">โหมดเบลอ</h3>
-                              <div class="segmented-control" id="blurModeGroup">
-                                 <button class="segmented-option active" data-mode="gaussian">Gaussian Blur</button>
-                                 <button class="segmented-option" data-mode="pixelate">Pixelate</button>
-                                 <button class="segmented-option" data-mode="solid">Solid Mask</button>
-                              </div>
-                           </div>
-                           <div class="controls-group">
-                              <h3 class="controls-heading" data-i18n="controls.blur.intensity">ความแรงการเบลอ</h3>
-                              <div class="slider-row">
-                                 <input type="range" id="blurIntensity" min="3" max="40" value="12">
-                                 <span id="blurIntensityValue" class="slider-value">12</span>
-                              </div>
-                           </div>
-                           <div class="controls-group">
-                              <h3 class="controls-heading" data-i18n="controls.blur.size">ขนาดพื้นที่เบลอ</h3>
-                              <div class="slider-row">
-                                 <input type="range" id="blurSize" min="0.8" max="2" step="0.05" value="1">
-                                 <span id="blurSizeValue" class="slider-value">1.0x</span>
-                              </div>
-                           </div>
-                           <div class="controls-group">
-                              <h3 class="controls-heading" data-i18n="controls.blur.region">ส่วนของใบหน้าที่ต้องการเบลอ</h3>
-                              <div class="select-row">
-                                 <select id="blurRegion">
-                                    <option value="full" selected data-i18n="blur.region.full">ทั้งใบหน้า</option>
-                                    <option value="eyes" data-i18n="blur.region.eyes">เฉพาะดวงตา</option>
-                                    <option value="mouth" data-i18n="blur.region.mouth">เฉพาะปาก</option>
-                                    <option value="eyes-mouth" data-i18n="blur.region.eyes_mouth">ดวงตาและปาก</option>
-                                 </select>
-                              </div>
-                           </div>
+            <div class="lang-toggle" id="langToggle" aria-label="Toggle language">
+                <button type="button" class="lang-option active" data-lang="th">TH</button>
+                <button type="button" class="lang-option" data-lang="en">EN</button>
+            </div>
+        </div>
+    </header>
+    <main class="app-main">
+        <section class="panel panel-left">
+            <div class="panel-top-section">
+                <h2 class="panel-title" data-i18n="panel.upload.title">อัปโหลดไฟล์และตั้งค่า</h2>
+                <div id="dropZone" class="drop-zone">
+                    <input id="fileInput" class="drop-input" type="file" accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.webm,image/*,video/*" multiple>
+                    <div class="drop-content">
+                        <div class="drop-text-main" data-i18n="drop.main">ลากแล้ววางไฟล์ที่นี่</div>
+                        <div class="drop-text-secondary" data-i18n="drop.secondary">หรือ <span class="drop-browse">เลือกไฟล์จากเครื่อง</span></div>
+                        <div class="drop-hint" data-i18n="drop.hint">รองรับการเลือกหลายไฟล์พร้อมกัน</div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-subsection flex-grow">
+                <h2 class="panel-title panel-title-compact" data-i18n="panel.settings.title">ตั้งค่าและประมวลผล</h2>
+                <div class="settings-main-layout">
+                    <!-- คอลัมน์ซ้าย: การตั้งค่าทั้งหมด -->
+                    <div class="settings-column-left">
+                        <div class="settings-section">
+                            <div class="controls-group">
+                                <h3 class="controls-heading" data-i18n="controls.blur.mode">โหมดเบลอ</h3>
+                                <div class="segmented-control" id="blurModeGroup">
+                                    <button class="segmented-option active" data-mode="gaussian">Gaussian Blur</button>
+                                    <button class="segmented-option" data-mode="pixelate">Pixelate</button>
+                                    <button class="segmented-option" data-mode="solid">Solid Mask</button>
+                                    <button class="segmented-option" data-mode="image" data-i18n="blur.mode.image">Image Mask</button>
+                                </div>
+                            </div>
+                            <div class="controls-group" id="maskImageControl" hidden>
+                                <h3 class="controls-heading" data-i18n="controls.mask.image">รูปภาพที่ใช้เป็น Mask</h3>
+                                <div class="mask-upload-row">
+                                    <input type="file" id="maskFileInput" accept="image/*" hidden>
+                                    <button type="button" id="maskUploadButton" class="secondary-button button-compact">
+                                        <span data-i18n="controls.mask.upload">เลือกรูปภาพ</span>
+                                    </button>
+                                    <div id="maskPreview" class="mask-preview">
+                                        <img id="maskPreviewImg" src="" alt="Mask Preview" hidden>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="controls-group">
+                                <h3 class="controls-heading" data-i18n="controls.blur.intensity">ความแรงการเบลอ</h3>
+                                <div class="slider-row">
+                                    <input type="range" id="blurIntensity" min="3" max="40" value="12">
+                                    <span id="blurIntensityValue" class="slider-value">12</span>
+                                </div>
+                            </div>
+                            <div class="controls-group">
+                                <h3 class="controls-heading" data-i18n="controls.blur.size">ขนาดพื้นที่เบลอ</h3>
+                                <div class="slider-row">
+                                    <input type="range" id="blurAreaSize" min="0.5" max="3.0" step="0.1" value="1.0">
+                                    <span id="blurAreaSizeValue" class="slider-value">1.0x</span>
+                                </div>
+                            </div>
+                            <div class="controls-group">
+                                <h3 class="controls-heading" data-i18n="controls.blur.region">พื้นที่ใบหน้าที่จะเบลอ</h3>
+                                <div class="select-row">
+                                    <select id="blurRegion">
+                                        <option value="full" data-i18n="blur.region.full">ทั้งใบหน้า</option>
+                                        <option value="eyes" data-i18n="blur.region.eyes">เฉพาะดวงตา</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="controls-group">
+                                <h3 class="controls-heading" data-i18n="controls.blur.shape">รูปทรงการเบลอ</h3>
+                                <div class="select-row">
+                                    <select id="blurShape">
+                                        <option value="rect" data-i18n="blur.shape.rect">สี่เหลี่ยม</option>
+                                        <option value="ellipse" data-i18n="blur.shape.ellipse">วงกลม/วงรี</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="controls-group">
+                                <div class="checkbox-row">
+                                    <input type="checkbox" id="enableCustomRegions">
+                                    <label for="enableCustomRegions" data-i18n="controls.custom.regions">วาดพื้นที่เบลอเองบนภาพหรือวิดีโอ</label>
+                                </div>
+                            </div>
+                            <div class="controls-group">
+                                <h3 class="controls-heading" data-i18n="controls.export.quality">คุณภาพไฟล์ส่งออก</h3>
+                                <div class="select-row">
+                                    <select id="exportQuality">
+                                        <option value="high" selected data-i18n="export.quality.high">สูง (เหมาะสำหรับงานจริง)</option>
+                                        <option value="medium" data-i18n="export.quality.medium">ปานกลาง (สมดุลระหว่างขนาดไฟล์และคุณภาพ)</option>
+                                        <option value="low" data-i18n="export.quality.low">ต่ำ (ขนาดไฟล์เล็กสุด)</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div class="settings-column">
-                           <div class="controls-group">
-                              <h3 class="controls-heading" data-i18n="controls.blur.shape">รูปทรงของการเบลอ</h3>
-                              <div class="select-row">
-                                 <select id="blurShape">
-                                    <option value="rect" selected data-i18n="blur.shape.rect">สี่เหลี่ยม</option>
-                                    <option value="ellipse" data-i18n="blur.shape.ellipse">วงกลม / วงรี</option>
-                                 </select>
-                              </div>
-                           </div>
-                           <div class="controls-group">
-                              <h3 class="controls-heading" data-i18n="controls.custom.area">พื้นที่ที่กำหนดเอง</h3>
-                              <label class="checkbox-row">
-                              <input type="checkbox" id="enableCustomRegions">
-                              <span data-i18n="controls.custom.area.hint">ลากบนรูปหรือวิดีโอเพื่อเพิ่มพื้นที่เบลอเอง</span>
-                              </label>
-                           </div>
-                           <div class="controls-group">
-                              <h3 class="controls-heading" data-i18n="controls.export.quality">คุณภาพไฟล์ส่งออก</h3>
-                              <div class="select-row">
-                                 <select id="exportQuality">
-                                    <option value="high" data-i18n="export.quality.high">สูง (เหมาะสำหรับงานจริง)</option>
-                                    <option value="medium" selected data-i18n="export.quality.medium">ปานกลาง (สมดุลระหว่างขนาดไฟล์และคุณภาพ)</option>
-                                    <option value="low" data-i18n="export.quality.low">ต่ำ (ขนาดไฟล์เล็กสุด)</option>
-                                 </select>
-                              </div>
-                           </div>
+                    </div>
+                    <!-- คอลัมน์ขวา: รายการไฟล์ และ เลือกใบหน้า -->
+                    <div class="settings-column-right">
+                        <div id="fileListWrapper" class="file-list-section">
+                            <h3 class="controls-heading" data-i18n="panel.filelist.title">รายการไฟล์ที่อัปโหลด</h3>
+                            <div id="fileList" class="file-list">
+                                <p class="face-selection-empty" id="fileListEmpty" data-i18n="filelist.empty">ยังไม่มีไฟล์ที่อัปโหลด</p>
+                            </div>
                         </div>
-                     </div>
-                     <div class="controls-group controls-face-selection">
-                        <h3 class="controls-heading" data-i18n="controls.faces.title">ใบหน้าที่ต้องการเบลอ</h3>
-                        <div id="faceSelection" class="face-selection">
-                           <p class="face-selection-empty">ระบบจะสร้างรายการใบหน้าหลังจากประมวลผลรูปภาพ</p>
+                        <div id="faceSelectionWrapper" class="face-selection-section">
+                            <h3 class="controls-heading" data-i18n="controls.faces.select">เลือกใบหน้าที่จะเบลอ</h3>
+                            <div id="faceSelection" class="face-selection">
+                                <p class="face-selection-empty" data-i18n="faces.initial">ระบบจะสร้างรายการใบหน้าหลังจากประมวลผลรูปภาพ</p>
+                            </div>
                         </div>
-                     </div>
-                     <div class="controls-group controls-processing">
-                        <h3 class="controls-heading" data-i18n="controls.processing.title">การประมวลผล</h3>
+                    </div>
+                </div>
+                <div class="controls-processing-footer">
+                    <div class="controls-group">
                         <div class="controls-actions-row">
-                           <button id="processButton" class="primary-button button-compact" disabled data-i18n="controls.actions.detect">ตรวจจับใบหน้าและเบลอ</button>
-                           <button id="resetButton" class="secondary-button button-compact" type="button" data-i18n="controls.actions.reset">รีเซต</button>
+                            <button id="processButton" class="primary-button" disabled>
+                                <span data-i18n="controls.actions.detect">ตรวจจับใบหน้าและเบลอ</span>
+                            </button>
+                            <button id="processAllButton" class="secondary-button" disabled data-i18n="controls.actions.processAll">
+                                <span data-i18n="controls.actions.processAll">เบลอทั้งหมด</span>
+                            </button>
+                            <button id="removeButton" class="secondary-button" disabled data-i18n="controls.actions.remove">
+                                <span data-i18n="controls.actions.remove">เอารูปออก</span>
+                            </button>
+                            <button id="resetButton" class="secondary-button">
+                                <span data-i18n="controls.actions.reset">ล้างข้อมูล</span>
+                            </button>
                         </div>
-                        <div class="progress-row">
-                           <div class="progress-bar">
-                              <div id="progressFill" class="progress-fill"></div>
-                           </div>
-                           <span id="progressLabel" class="progress-label" data-i18n="status.ready">พร้อมสำหรับประมวลผล</span>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div id="progressFill" class="progress-fill"></div>
+                            </div>
+                            <span id="progressLabel" class="progress-label" data-i18n="status.ready">พร้อมสำหรับประมวลผล</span>
                         </div>
-                     </div>
-                     <div class="controls-group controls-footer">
+                    </div>
+                    <div class="controls-group controls-footer">
                         <button id="downloadButton" class="secondary-button" disabled data-i18n="controls.actions.download">ดาวน์โหลดไฟล์ที่เบลอแล้ว</button>
                         <p class="privacy-note" data-i18n="privacy.note">ทุกอย่างประมวลผลภายในเบราว์เซอร์ของคุณ ไฟล์ของคุณจะไม่ถูกอัปโหลดไปยังเซิร์ฟเวอร์</p>
-                     </div>
-                  </div>
-               </div>
-            </section>
-            <section class="panel panel-right">
-               <h2 class="panel-title" data-i18n="panel.preview.title">กรอบแสดงภาพและวิดีโอ</h2>
-               <div class="preview-wrapper">
-                  <div id="previewEmpty" class="preview-empty" data-i18n="preview.empty">
-                     โปรดอัปโหลดรูปภาพหรือวิดีโอเพื่อเริ่มใช้งาน
-                  </div>
-                  <div class="preview-tabs">
-                     <button class="preview-tab active" data-target="originalPreview" data-i18n="preview.original.tab">ต้นฉบับ</button>
-                     <button class="preview-tab" data-target="processedPreview" data-i18n="preview.processed.tab">หลังเบลอ</button>
-                  </div>
-                  <div class="preview-surfaces">
-                     <div id="originalPreview" class="preview-surface active">
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="panel panel-right">
+            <h2 class="panel-title" data-i18n="panel.preview.title">กรอบแสดงภาพและวิดีโอ</h2>
+            <div class="preview-wrapper">
+                <div id="previewEmpty" class="preview-empty" data-i18n="preview.empty">
+                    โปรดอัปโหลดรูปภาพหรือวิดีโอเพื่อเริ่มใช้งาน
+                </div>
+                <div class="preview-tabs">
+                    <button class="preview-tab active" data-target="originalPreview" data-i18n="preview.original.tab">ต้นฉบับ</button>
+                    <button class="preview-tab" data-target="processedPreview" data-i18n="preview.processed.tab">หลังเบลอ</button>
+                </div>
+                <div class="preview-surfaces">
+                    <div id="originalPreview" class="preview-surface active">
                         <div class="preview-placeholder" id="originalPlaceholder" data-i18n="preview.original.placeholder">ยังไม่มีไฟล์ที่เลือก</div>
                         <canvas id="imageOriginalCanvas" class="preview-canvas" hidden></canvas>
                         <video id="videoOriginal" class="preview-video" hidden controls playsinline></video>
-                     </div>
-                     <div id="processedPreview" class="preview-surface">
+                    </div>
+                    <div id="processedPreview" class="preview-surface">
                         <div class="preview-placeholder" id="processedPlaceholder" data-i18n="preview.processed.placeholder">ผลลัพธ์จะปรากฏที่นี่หลังประมวลผล</div>
                         <canvas id="imageProcessedCanvas" class="preview-canvas" hidden></canvas>
                         <div id="processedVideoPlayer" class="video-player" hidden>
-                           <canvas id="videoProcessedCanvas" class="preview-canvas" hidden></canvas>
-                           <video id="videoProcessed" class="preview-video" hidden controls playsinline></video>
+                            <canvas id="videoProcessedCanvas" class="preview-canvas" hidden></canvas>
+                            <video id="videoProcessed" class="preview-video" hidden controls playsinline></video>
                         </div>
-                     </div>
-                  </div>
-               </div>
-            </section>
-         </main>
-         <footer class="app-footer">
-            <span>Sensor Faces – Timmy</span>
-            <a href="https://github.com/Zentrary" target="_blank" rel="noopener">GitHub: Zentrary</a>
-         </footer>
-      </div>
-      <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
-      <script src="js/app.js"></script>
-   </body>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="app-footer">
+        <span>Sensor Faces – Timmy</span>
+        <a href="https://github.com/Zentrary" target="_blank" rel="noopener">GitHub: Zentrary</a>
+    </footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
+<script src="js/app.js"></script>
+</body>
 </html>
